@@ -1,0 +1,17 @@
+{
+  "name": "JasaKita - Marketplace Jasa Tanpa Komisi",
+  "short_name": "JasaKita",
+  "description": "Cari jasa terdekat atau tawarkan keahlianmu. 0% komisi.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#071A17",
+  "theme_color": "#071A17",
+  "lang": "id",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
