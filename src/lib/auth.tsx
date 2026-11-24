@@ -1,13 +1,13 @@
 'use client';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { getSupabase, isDemo } from './supabase';
-import { get, insert, list } from './db';
+import { get, insert, list, upsertContact } from './db';
 import type { Profile } from './types';
 
 type U = { id: string; email: string } | null;
 type R = { error?: string; info?: string };
 interface Ctx {
-  user: U; profile: Profile | null; whatsapp: string; loading: boolean;
+  user: U; profile: Profile | null; whatsapp: string; contactEmail: string; loading: boolean;
   refresh: () => Promise<void>;
   signIn: (e: string, p: string) => Promise<R>;
   signUp: (n: string, e: string, p: string) => Promise<R>;
@@ -21,16 +21,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<U>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [whatsapp, setWa] = useState('');
+  const [contactEmail, setEmail] = useState('');
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (u: U) => {
     setUser(u);
-    if (!u) { setProfile(null); setWa(''); return; }
+    if (!u) { setProfile(null); setWa(''); setEmail(''); return; }
     let p = await get<Profile>('profiles', u.id);
-    if (!p && !isDemo) { await new Promise((r) => setTimeout(r, 900)); p = await get<Profile>('profiles', u.id); }
+    if (!p && !isDemo) {
+      await new Promise((r) => setTimeout(r, 700));
+      p = await get<Profile>('profiles', u.id);
+      if (!p) { // cadangan: buat profil sendiri bila trigger database belum aktif
+        try { await insert('profiles', { id: u.id, full_name: '', avatar_url: '', bio: '', province: '', city: '', district: '', social_url: '', wa_verified: false, status: 'ACTIVE', is_admin: false, completed_orders: 0, rating_sum: 0, rating_count: 0 }); } catch (e) { console.error(e); }
+        p = await get<Profile>('profiles', u.id);
+      }
+    }
     setProfile(p);
-    const c = await get<any>('contacts', u.id);
-    setWa(c?.whatsapp || '');
+    let c = await get<any>('contacts', u.id);
+    if (!c && !isDemo) { try { await upsertContact(u.id, '', u.email); c = await get<any>('contacts', u.id); } catch (e) { console.error(e); } }
+    setWa(c?.whatsapp || ''); setEmail(c?.email || '');
   }, []);
 
   useEffect(() => {
@@ -73,6 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if ((await list<any>('users', { email: e })).length) return { error: 'Email sudah terdaftar.' };
       const u = await insert<any>('users', { email: e, password });
       await insert('profiles', { id: u.id, full_name: name, avatar_url: '', bio: '', province: '', city: '', district: '', social_url: '', wa_verified: false, status: 'ACTIVE', is_admin: false, completed_orders: 0, rating_sum: 0, rating_count: 0 });
+      await upsertContact(u.id, '', e);
       const s = { id: u.id, email: e }; localStorage.setItem('jk_session', JSON.stringify(s)); await load(s); return {};
     }
     const { data, error } = await getSupabase().auth.signUp({ email, password, options: { data: { full_name: name } } });
@@ -92,5 +102,5 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await load(null);
   }
 
-  return <C.Provider value={{ user, profile, whatsapp, loading, refresh, signIn, signUp, google, signOut }}>{children}</C.Provider>;
+  return <C.Provider value={{ user, profile, whatsapp, contactEmail, loading, refresh, signIn, signUp, google, signOut }}>{children}</C.Provider>;
 }

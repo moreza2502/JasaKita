@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { list, profileMap } from '@/lib/db';
-import { CATEGORIES } from '@/lib/constants';
+import { GROUPS } from '@/lib/constants';
 import type { Profile, Service } from '@/lib/types';
 import ServiceCard from '@/components/ServiceCard';
 
@@ -36,11 +36,11 @@ export default function Home() {
         <span><b className="block text-sm">Cari Jasa dengan AI</b><span className="text-xs text-white/60">Ceritakan masalahmu, AI carikan jasa, model harga, dan garansi yang pas.</span></span>
       </Link>
 
-      <h2 className="mt-8 mb-3 font-bold">Kategori jasa</h2>
+      <h2 className="mt-8 mb-3 font-bold">Mau cari jasa apa?</h2>
       <div className="grid grid-cols-2 gap-3">
-        {CATEGORIES.map((c) => (
-          <Link key={c.id} href={`/cari?cat=${encodeURIComponent(c.id)}`} className="card flex items-center gap-3 !p-3 hover:border-primary transition">
-            <span className="text-2xl">{c.icon}</span><span className="text-sm font-semibold leading-tight">{c.id}</span>
+        {GROUPS.map((g) => (
+          <Link key={g.id} href={`/cari?g=${g.id}`} className="flex min-h-[104px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-line bg-card px-2 py-4 text-center transition hover:border-primary active:scale-95">
+            <span className="text-3xl leading-none">{g.icon}</span><span className="text-[13px] font-semibold leading-tight">{g.name}</span><span className="text-[11px] text-white/50">{g.cats.length} kategori</span>
           </Link>
         ))}
       </div>

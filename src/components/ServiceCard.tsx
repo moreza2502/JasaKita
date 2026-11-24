@@ -7,7 +7,7 @@ export default function ServiceCard({ s, p }: { s: Service; p?: Profile }) {
   return (
     <Link href={`/cari/${s.id}`} className="card block hover:border-primary transition">
       <div className="flex gap-2 flex-wrap text-[11px]">
-        <span className="chip">{s.category}</span>
+        <span className="chip">{s.items?.[0] || s.category}{(s.items?.length || 0) > 1 ? ` +${s.items.length - 1}` : ''}</span>
         <span className="chip">{MODE_SHORT[s.mode]}{s.mode !== 'REMOTE' && s.city ? ` · ${s.city}` : ''}</span>
         <span className="chip">🛡 {warrantyLabel(s.warranty_days)}</span>
       </div>

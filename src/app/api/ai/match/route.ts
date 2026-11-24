@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { askJson, guessCategory, hasKey } from '@/lib/server-ai';
+import { askJson, guessItems, hasKey } from '@/lib/server-ai';
 
 export async function POST(req: Request) {
   const { query, services } = await req.json();
@@ -16,16 +16,16 @@ export async function POST(req: Request) {
     } catch (e) { /* simulasi */ }
   }
   const q = String(query).toLowerCase();
-  const cat = guessCategory(q);
+  const guess = guessItems(q, 3); const cat = guess[0]?.cat || 'Lainnya'; const gi = guess.map((x) => x.item);
   const words = q.split(/\W+/).filter((w) => w.length > 2);
   const scored = list.map((s) => {
-    const hay = `${s.title} ${s.category} ${(s.tags || []).join(' ')}`.toLowerCase();
-    return { id: s.id, score: words.filter((w) => hay.includes(w)).length * 2 + (s.category === cat ? 3 : 0) + (s.rating || 0) / 5 };
+    const hay = `${s.title} ${(s.categories || []).join(' ')} ${(s.items || []).join(' ')} ${(s.tags || []).join(' ')}`.toLowerCase();
+    return { id: s.id, score: words.filter((w) => hay.includes(w)).length * 2 + ((s.items || []).some((i: string) => gi.includes(i)) ? 4 : 0) + (s.rating || 0) / 5 };
   }).filter((x) => x.score >= 2).sort((a, b) => b.score - a.score).slice(0, 5);
   const pm = /proyek|website|borongan|renovasi|bikin|buat|laporan|pasang/.test(q) ? 'PROJECT' : /jam|konsultasi|support|cek/.test(q) ? 'HOURLY' : 'DAILY';
   return NextResponse.json({
     summary: `Dari ceritamu, kebutuhan paling dekat dengan kategori ${cat}. Berikut penyedia yang paling cocok (hasil simulasi tanpa Gemini).`,
-    categories: [cat], pricing_model: pm,
+    categories: Array.from(new Set(guess.map((x) => x.cat))), pricing_model: pm,
     pricing_reason: pm === 'PROJECT' ? 'Pekerjaan dengan hasil akhir jelas lebih aman dengan harga borongan per proyek.' : pm === 'HOURLY' ? 'Pekerjaan yang durasinya belum pasti cocok dihitung per jam.' : 'Pekerjaan beberapa hari cocok dengan tarif harian.',
     warranty_advice: 'Minta garansi minimal 14 hari dan pastikan cakupannya tertulis di Kesepakatan Kerja Digital.',
     ranked_ids: scored.map((x) => x.id), simulated: true,

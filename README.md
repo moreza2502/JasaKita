@@ -13,7 +13,7 @@ Akun demo: `demo@jasakita.id / demo1234` (pembeli, profil 60%), `budi@jasakita.i
 
 ## Mode Live (Supabase + Gemini)
 1. Salin `.env.example` menjadi `.env.local`, isi 3 variabel.
-2. Supabase SQL Editor: jalankan seluruh `supabase/schema.sql`.
+2. Supabase SQL Editor: jalankan seluruh `supabase/schema.sql` (instalasi baru). Jika sebelumnya sudah memakai versi lama, jalankan `supabase/update-v2.sql` saja.
 3. Supabase > Authentication > Providers > Google: aktifkan (butuh Client ID/Secret dari Google Cloud Console, gratis). Tambahkan Redirect URL aplikasi di Authentication > URL Configuration.
 4. (Disarankan saat uji coba) Authentication > Providers > Email: matikan "Confirm email".
 5. Daftar di aplikasi, lalu jalankan SQL di baris terakhir `schema.sql` untuk menjadikan dirimu admin.
@@ -29,4 +29,6 @@ Upload proyek ke GitHub, import di vercel.com, tambahkan 3 environment variable,
 - WhatsApp disimpan di tabel `contacts` terpisah, hanya terbaca oleh pengguna login.
 - Gerbang profil 80% dipaksa di database (RLS), bukan hanya di UI.
 - Log AI Content Guard ditulis dari klien; untuk produksi ketat, pindahkan penulisan log ke server (service role).
-- Data wilayah di `src/lib/locations.ts` hanya contoh; tambahkan provinsi/kota/kecamatan lain.
+- Data wilayah di `src/lib/locations.ts` memuat 38 provinsi dan seluruh kabupaten/kota; kecamatan tersedia untuk kota/kabupaten besar, sisanya diketik manual. Untuk data resmi lengkap, impor dataset Kemendagri/BPS.
+- Kategori jasa 3 tingkat ada di `src/lib/constants.ts`. Admin bisa menyetujui usulan atau menambah kategori dari menu Admin > Kategori.
+- Data wajib untuk menerbitkan jasa/penawaran/permintaan/kesepakatan: foto, WhatsApp terkonfirmasi, domisili, email, dan skor profil >= 80%.

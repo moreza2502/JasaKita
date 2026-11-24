@@ -6,11 +6,11 @@ import { get, insert, patch } from '@/lib/db';
 import { useQ } from '@/lib/hooks';
 import { PM_LABEL } from '@/lib/format';
 import type { Bid, JobRequest, Profile, Service } from '@/lib/types';
-import { RequireAuth } from '@/components/Gate';
+import { GateBanner, RequireAuth, useGate } from '@/components/Gate';
 import WarrantyPicker from '@/components/WarrantyPicker';
 
 export default function PesananBaru() {
-  const { user } = useAuth(); const router = useRouter();
+  const { user } = useAuth(); const { ok } = useGate(); const router = useRouter();
   const sid = useQ('service'); const bid = useQ('bid'); const pm0 = useQ('pm');
   const [f, setF] = useState({ title: '', price: '', pm: 'PROJECT', dp: '0', terms: '', scope: '', provider_id: '', service_id: '', request_id: '', bid_id: '' });
   const [wd, setWd] = useState(14); const [wdesc, setWdesc] = useState(''); const [prov, setProv] = useState<Profile | null>(null);
@@ -34,6 +34,7 @@ export default function PesananBaru() {
 
   async function submit() {
     setErr('');
+    if (!ok) return setErr('Lengkapi data wajib profil dulu (foto, WhatsApp, domisili, email).');
     if (!Number(f.price)) return setErr('Isi harga yang disepakati.');
     if (f.scope.trim().length < 15) return setErr('Tulis ruang lingkup pekerjaan minimal 15 karakter.');
     if (f.terms.trim().length < 5) return setErr('Tulis ketentuan pembayaran (contoh: DP 30%, sisanya setelah selesai).');
@@ -52,6 +53,7 @@ export default function PesananBaru() {
       <div className="pt-5">
         <h1 className="text-2xl font-extrabold">Kesepakatan Kerja Digital</h1>
         <p className="mt-1 text-sm text-white/60">Kunci harga, ketentuan bayar, lingkup kerja, dan garansi. Pembayaran dilakukan langsung ke penyedia (0% komisi).</p>
+        <GateBanner />
         {!ready ? <p className="py-8 text-center text-white/60">Memuat data jasa…</p> : (
           <>
             <div className="card mt-4 text-sm"><p className="text-white/60">Penyedia</p><p className="font-semibold">{prov?.full_name}</p><p className="mt-2 text-white/60">Pekerjaan</p><p className="font-semibold">{f.title}</p></div>
@@ -63,7 +65,7 @@ export default function PesananBaru() {
             <label className="label">Ruang lingkup pekerjaan *</label><textarea className="input" rows={4} value={f.scope} onChange={set('scope')} />
             <WarrantyPicker days={wd} desc={wdesc} onDays={setWd} onDesc={setWdesc} />
             {err && <p className="mt-4 rounded-xl border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-200">{err}</p>}
-            <button className="btn-primary mt-5 w-full" disabled={busy} onClick={submit}>{busy ? 'Menyimpan…' : 'Buat Kesepakatan & Minta Persetujuan Penyedia'}</button>
+            <button className="btn-primary mt-5 w-full" disabled={busy || !ok} onClick={submit}>{busy ? 'Menyimpan…' : 'Buat Kesepakatan & Minta Persetujuan Penyedia'}</button>
           </>
         )}
       </div>

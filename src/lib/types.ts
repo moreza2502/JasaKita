@@ -7,13 +7,13 @@ export interface Profile {
   completed_orders: number; rating_sum: number; rating_count: number; created_at: string;
 }
 export interface Service {
-  id: string; provider_id: string; category: string; subcategory: string; title: string; description: string;
+  id: string; provider_id: string; category: string; subcategory: string; categories: string[]; items: string[]; title: string; description: string;
   price_hourly: number | null; price_daily: number | null; price_project: number | null;
   warranty_days: number; warranty_desc: string; mode: Mode;
   province: string; city: string; district: string; tags: string[]; is_active: boolean; created_at: string;
 }
 export interface JobRequest {
-  id: string; buyer_id: string; title: string; description: string; category: string; mode: Mode;
+  id: string; buyer_id: string; title: string; description: string; category: string; item: string; mode: Mode;
   province: string; city: string; district: string; pricing_model: PricingModel; budget: number;
   status: 'OPEN' | 'CLOSED'; created_at: string;
 }

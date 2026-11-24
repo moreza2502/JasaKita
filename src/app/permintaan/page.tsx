@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { list, profileMap } from '@/lib/db';
-import { CATEGORIES } from '@/lib/constants';
+import { GROUPS } from '@/lib/constants';
 import { MODE_SHORT, PM_LABEL, rp, dateID } from '@/lib/format';
 import type { JobRequest, Profile } from '@/lib/types';
 
@@ -15,11 +15,11 @@ export default function Permintaan() {
       <h1 className="text-2xl font-extrabold">Papan Permintaan Jasa</h1>
       <p className="mt-1 text-sm text-white/60">Pembeli menulis kebutuhan, penyedia mengirim penawaran.</p>
       <Link href="/permintaan/baru" className="btn-primary mt-4 w-full">+ Pasang Permintaan</Link>
-      <select className="input mt-4" value={cat} onChange={(e) => setCat(e.target.value)}><option value="">Semua kategori</option>{CATEGORIES.map((c) => <option key={c.id}>{c.id}</option>)}</select>
+      <select className="input mt-4" value={cat} onChange={(e) => setCat(e.target.value)}><option value="">Semua kategori</option>{GROUPS.map((g) => <optgroup key={g.id} label={g.name}>{g.cats.map((c) => <option key={c.name}>{c.name}</option>)}</optgroup>)}</select>
       <div className="mt-4 space-y-3">
         {shown.map((r) => (
           <Link key={r.id} href={`/permintaan/${r.id}`} className="card block hover:border-primary transition">
-            <div className="flex flex-wrap gap-2 text-[11px]"><span className="chip">{r.category}</span><span className="chip">{MODE_SHORT[r.mode]}{r.mode !== 'REMOTE' && r.city ? ` · ${r.city}` : ''}</span></div>
+            <div className="flex flex-wrap gap-2 text-[11px]"><span className="chip">{r.item || r.category}</span><span className="chip">{MODE_SHORT[r.mode]}{r.mode !== 'REMOTE' && r.city ? ` · ${r.city}` : ''}</span></div>
             <h3 className="mt-2 font-bold leading-snug">{r.title}</h3>
             <p className="mt-1 line-clamp-2 text-sm text-white/70">{r.description}</p>
             <p className="mt-2 text-sm">Budget <b className="text-gold">{rp(r.budget)}</b> <span className="text-white/50">· {PM_LABEL[r.pricing_model]}</span></p>

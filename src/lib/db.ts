@@ -2,13 +2,13 @@ import { getSupabase, isDemo } from './supabase';
 import { seed } from './seed';
 import type { Order, Profile, Service } from './types';
 
-export type Tbl = 'profiles' | 'contacts' | 'services' | 'requests' | 'bids' | 'orders' | 'reports' | 'mod_logs' | 'users';
+export type Tbl = 'profiles' | 'contacts' | 'services' | 'requests' | 'bids' | 'orders' | 'reports' | 'mod_logs' | 'users' | 'category_suggestions';
 const K = (t: string) => 'jk_' + t;
 function ensure() {
-  if (localStorage.getItem('jk_seed') !== 'v1') {
+  if (localStorage.getItem('jk_seed') !== 'v2') {
     const s: any = seed();
     Object.keys(s).forEach((t) => localStorage.setItem(K(t), JSON.stringify(s[t])));
-    localStorage.setItem('jk_seed', 'v1');
+    localStorage.setItem('jk_seed', 'v2');
   }
 }
 function rd(t: Tbl): any[] { if (typeof window === 'undefined') return []; ensure(); return JSON.parse(localStorage.getItem(K(t)) || '[]'); }
@@ -35,9 +35,9 @@ export async function patch(t: Tbl, id: string, p: any) {
   if (isDemo) { wr(t, rd(t).map((r) => (r.id === id ? { ...r, ...p } : r))); return; }
   const { error } = await getSupabase().from(t).update(p).eq('id', id); if (error) throw new Error(error.message);
 }
-export async function upsertContact(id: string, whatsapp: string) {
-  if (isDemo) { const rows = rd('contacts').filter((r) => r.id !== id); wr('contacts', [...rows, { id, whatsapp }]); return; }
-  const { error } = await getSupabase().from('contacts').upsert({ id, whatsapp }); if (error) throw new Error(error.message);
+export async function upsertContact(id: string, whatsapp: string, email: string) {
+  if (isDemo) { const rows = rd('contacts').filter((r) => r.id !== id); wr('contacts', [...rows, { id, whatsapp, email }]); return; }
+  const { error } = await getSupabase().from('contacts').upsert({ id, whatsapp, email }); if (error) throw new Error(error.message);
 }
 export async function profileMap(): Promise<Record<string, Profile>> {
   const m: Record<string, Profile> = {}; (await list<Profile>('profiles')).forEach((p) => (m[p.id] = p)); return m;

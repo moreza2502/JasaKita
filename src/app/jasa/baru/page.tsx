@@ -4,16 +4,17 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { insert } from '@/lib/db';
 import { guard } from '@/lib/aiclient';
-import { CATEGORIES } from '@/lib/constants';
 import type { Mode } from '@/lib/types';
 import { GateBanner, RequireAuth, useGate } from '@/components/Gate';
 import LocationPicker, { Loc } from '@/components/LocationPicker';
 import WarrantyPicker from '@/components/WarrantyPicker';
+import { CategoryPicker, useTree } from '@/components/CategoryPicker';
 
 export default function JasaBaru() {
-  const { user } = useAuth(); const { ok } = useGate(); const router = useRouter();
+  const { user } = useAuth(); const { ok } = useGate(); const router = useRouter(); const tree = useTree();
   const [raw, setRaw] = useState(''); const [aiBusy, setAiBusy] = useState(false); const [aiNote, setAiNote] = useState('');
-  const [cat, setCat] = useState(CATEGORIES[0].id); const [sub, setSub] = useState(''); const [title, setTitle] = useState(''); const [desc, setDesc] = useState('');
+  const [items, setItems] = useState<string[]>([]); const [cats, setCats] = useState<string[]>([]);
+  const [title, setTitle] = useState(''); const [desc, setDesc] = useState('');
   const [on, setOn] = useState({ h: false, d: false, p: true }); const [price, setPrice] = useState({ h: '', d: '', p: '' });
   const [wd, setWd] = useState(14); const [wdesc, setWdesc] = useState('');
   const [mode, setMode] = useState<Mode>('ONSITE'); const [loc, setLoc] = useState<Loc>({ province: '', city: '', district: '' });
@@ -24,20 +25,22 @@ export default function JasaBaru() {
     try {
       const r = await fetch('/api/ai/listing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: raw }) });
       const j = await r.json(); if (!r.ok) throw new Error(j.error);
-      if (CATEGORIES.some((c) => c.id === j.category)) setCat(j.category);
-      setSub(j.subcategory || ''); setTitle(j.title || ''); setDesc(j.description || ''); setTags((j.tags || []).join(', '));
+      const valid: string[] = (j.items || []).filter((i: string) => tree.some((g) => g.cats.some((c) => c.items.includes(i))));
+      setItems(valid); setCats(tree.flatMap((g) => g.cats).filter((c) => c.items.some((i) => valid.includes(i))).map((c) => c.name));
+      setTitle(j.title || ''); setDesc(j.description || ''); setTags((j.tags || []).join(', '));
       const pm: string[] = j.pricing_models || [];
       setOn({ h: pm.includes('HOURLY'), d: pm.includes('DAILY'), p: pm.includes('PROJECT') });
       if (j.warranty_suggestion && !wdesc) setWdesc(j.warranty_suggestion);
-      setAiNote((j.simulated ? 'Hasil simulasi (tanpa Gemini). ' : '') + 'Periksa dan sesuaikan, lalu isi harga sesuai kemampuanmu.');
+      setAiNote((j.simulated ? 'Hasil simulasi (tanpa Gemini). ' : '') + (valid.length ? '' : 'AI belum menemukan kategori yang cocok, pilih manual di bawah. ') + 'Periksa dan sesuaikan, lalu isi harga sesuai kemampuanmu.');
     } catch (e: any) { setErr(e.message || 'AI gagal, isi manual saja.'); } finally { setAiBusy(false); }
   }
 
   async function submit() {
     setErr('');
-    if (!ok) return setErr('Profil harus minimal 80% lengkap.');
+    if (!ok) return setErr('Lengkapi data wajib profil dulu (foto, WhatsApp, domisili, email).');
     const n = (v: string) => (v ? Number(v.replace(/\D/g, '')) : 0);
     const h = on.h ? n(price.h) : 0, d = on.d ? n(price.d) : 0, p = on.p ? n(price.p) : 0;
+    if (!items.length) return setErr('Pilih minimal satu layanan pada bagian Kategori & Layanan.');
     if (title.trim().length < 8) return setErr('Judul minimal 8 karakter.');
     if (desc.trim().length < 30) return setErr('Deskripsi minimal 30 karakter.');
     if (!h && !d && !p) return setErr('Aktifkan minimal satu model harga dan isi nominalnya.');
@@ -48,7 +51,7 @@ export default function JasaBaru() {
     if (!v.ok) { setErr(v.reason); setBusy(false); return; }
     try {
       const row = await insert<any>('services', {
-        provider_id: user!.id, category: cat, subcategory: sub, title: title.trim(), description: desc.trim(),
+        provider_id: user!.id, category: cats[0] || '', subcategory: items[0], categories: cats, items, title: title.trim(), description: desc.trim(),
         price_hourly: h || null, price_daily: d || null, price_project: p || null, warranty_days: wd, warranty_desc: wdesc.trim(), mode,
         province: mode === 'REMOTE' ? '' : loc.province, city: mode === 'REMOTE' ? '' : loc.city, district: mode === 'REMOTE' ? '' : loc.district,
         tags: tags.split(',').map((t) => t.trim()).filter(Boolean).slice(0, 8), is_active: true,
@@ -59,7 +62,7 @@ export default function JasaBaru() {
 
   const tierRow = (k: 'h' | 'd' | 'p', label: string, unit: string) => (
     <div className="mt-2 flex items-center gap-3 rounded-xl border border-line p-3">
-      <input type="checkbox" className="accent-[#2A8C78] h-4 w-4" checked={on[k]} onChange={(e) => setOn({ ...on, [k]: e.target.checked })} />
+      <input type="checkbox" className="h-4 w-4 accent-[#2A8C78]" checked={on[k]} onChange={(e) => setOn({ ...on, [k]: e.target.checked })} />
       <span className="flex-1 text-sm">{label}</span>
       <input className="input !w-32 !py-2" inputMode="numeric" disabled={!on[k]} placeholder={`Rp / ${unit}`} value={price[k]} onChange={(e) => setPrice({ ...price, [k]: e.target.value.replace(/\D/g, '') })} />
     </div>
@@ -77,11 +80,9 @@ export default function JasaBaru() {
           {aiNote && <p className="mt-2 text-xs text-emerald-300">{aiNote}</p>}
         </div>
 
-        <label className="label">Kategori</label>
-        <select className="input" value={cat} onChange={(e) => { setCat(e.target.value); setSub(''); }}>{CATEGORIES.map((c) => <option key={c.id}>{c.id}</option>)}</select>
-        <label className="label">Sub-kategori</label>
-        <input className="input" list="subs" value={sub} onChange={(e) => setSub(e.target.value)} placeholder="Pilih atau ketik sendiri" />
-        <datalist id="subs">{CATEGORIES.find((c) => c.id === cat)?.subs.map((s) => <option key={s} value={s} />)}</datalist>
+        <label className="label">Kategori & layanan yang kamu tawarkan * (boleh pilih lebih dari satu, atau semua)</label>
+        <CategoryPicker value={items} onChange={(i, c) => { setItems(i); setCats(c); }} />
+
         <label className="label">Judul jasa *</label><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={90} />
         <label className="label">Deskripsi *</label><textarea className="input" rows={5} value={desc} onChange={(e) => setDesc(e.target.value)} />
 

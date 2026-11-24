@@ -5,15 +5,18 @@ import { list, patch, restoreUser, suspendUser, validateReport } from '@/lib/db'
 import { dateID } from '@/lib/format';
 import type { JobRequest, ModLog, Order, Profile, Report, Service } from '@/lib/types';
 import { RequireAuth } from '@/components/Gate';
+import { SuggestForm } from '@/components/CategoryPicker';
 
 export default function Admin() {
   const { profile, loading } = useAuth();
-  const [tab, setTab] = useState<'ringkasan' | 'laporan' | 'pengguna' | 'log'>('ringkasan');
+  const [tab, setTab] = useState<'ringkasan' | 'laporan' | 'pengguna' | 'kategori' | 'log'>('ringkasan');
   const [d, setD] = useState<{ users: Profile[]; services: Service[]; requests: JobRequest[]; orders: Order[]; reports: Report[]; logs: ModLog[] }>({ users: [], services: [], requests: [], orders: [], reports: [], logs: [] });
   const [note, setNote] = useState('');
+  const [sugg, setSugg] = useState<any[]>([]);
   const load = useCallback(async () => {
     const [users, services, requests, orders, reports, logs] = await Promise.all([list<Profile>('profiles'), list<Service>('services'), list<JobRequest>('requests'), list<Order>('orders'), list<Report>('reports'), list<ModLog>('mod_logs')]);
     setD({ users, services, requests, orders, reports, logs });
+    setSugg(await list<any>('category_suggestions'));
   }, []);
   useEffect(() => { if (profile?.is_admin) load().catch(console.error); }, [profile, load]);
 
@@ -29,7 +32,7 @@ export default function Admin() {
         return (
           <div className="pt-5">
             <h1 className="text-2xl font-extrabold">Dashboard Admin</h1>
-            <div className="mt-4 flex gap-2 overflow-x-auto">{(['ringkasan', 'laporan', 'pengguna', 'log'] as const).map((t) => <button key={t} onClick={() => setTab(t)} className={`chip whitespace-nowrap capitalize ${tab === t ? '!border-gold !text-gold' : ''}`}>{t === 'log' ? 'Log Moderasi AI' : t}{t === 'laporan' && pending.length ? ` (${pending.length})` : ''}</button>)}</div>
+            <div className="mt-4 flex gap-2 overflow-x-auto">{(['ringkasan', 'laporan', 'pengguna', 'kategori', 'log'] as const).map((t) => <button key={t} onClick={() => setTab(t)} className={`chip whitespace-nowrap capitalize ${tab === t ? '!border-gold !text-gold' : ''}`}>{t === 'log' ? 'Log Moderasi AI' : t}{t === 'kategori' && sugg.some((x) => x.status === 'PENDING') ? ` (${sugg.filter((x) => x.status === 'PENDING').length})` : ''}{t === 'laporan' && pending.length ? ` (${pending.length})` : ''}</button>)}</div>
             {note && <p className="mt-3 rounded-xl border border-line bg-card p-3 text-sm">{note}</p>}
 
             {tab === 'ringkasan' && <div className="mt-4 grid grid-cols-2 gap-3">{metrics.map(([k, v]) => <div key={k} className="card"><p className="text-3xl font-extrabold text-gold">{v}</p><p className="text-xs text-white/60">{k}</p></div>)}</div>}
@@ -53,6 +56,20 @@ export default function Admin() {
                   {!u.is_admin && (u.status === 'SUSPENDED' ? <button className="btn-primary !py-2" onClick={() => act(() => restoreUser(u.id), 'Akun dipulihkan.')}>Pulihkan</button> : <button className="btn-danger !py-2" onClick={() => act(() => suspendUser(u.id), 'Akun ditangguhkan & semua listing disembunyikan.')}>Suspend</button>)}
                 </div>
               ))}
+            </div>}
+
+            {tab === 'kategori' && <div className="mt-4 space-y-3">
+              <div className="card text-sm text-white/70">Daftar bawaan sudah memuat 22 kategori (A–E) dan bidang <b>F · Kategori Tambahan</b> sebagai bahan pertimbangan. Usulan dari pengguna muncul di bawah; tekan <b>Setujui</b> agar langsung tampil di aplikasi.</div>
+              {sugg.map((x) => (
+                <div key={x.id} className="card text-sm">
+                  <div className="flex items-center justify-between"><span className={`chip ${x.status === 'PENDING' ? '!text-gold' : x.status === 'APPROVED' ? '!text-emerald-300' : '!text-red-300'}`}>{x.status}</span><span className="text-[11px] text-white/40">Bidang {x.group_id} · {dateID(x.created_at)}</span></div>
+                  <p className="mt-2 font-semibold">{x.category_name}</p><p className="text-white/70">{x.items}</p><p className="mt-1 text-xs text-white/40">diusulkan oleh {name(x.user_id)}</p>
+                  {x.status === 'PENDING' && <div className="mt-3 flex gap-2"><button className="btn-primary flex-1" onClick={() => act(() => patch('category_suggestions', x.id, { status: 'APPROVED' }), 'Kategori disetujui dan sudah tampil.')}>Setujui</button><button className="btn-ghost flex-1" onClick={() => act(() => patch('category_suggestions', x.id, { status: 'REJECTED' }), 'Usulan ditolak.')}>Tolak</button></div>}
+                </div>
+              ))}
+              {!sugg.length && <p className="text-sm text-white/50">Belum ada usulan kategori.</p>}
+              <h3 className="pt-2 font-bold">Tambah kategori langsung</h3>
+              <SuggestForm asAdmin onDone={load} />
             </div>}
 
             {tab === 'log' && <div className="mt-4 space-y-2">

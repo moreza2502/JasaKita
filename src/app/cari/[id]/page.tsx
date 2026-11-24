@@ -33,7 +33,7 @@ export default function Detail() {
     <div className="pt-5">
       {p.status === 'SUSPENDED' && <div className="card mb-3 border-red-500/60 text-sm text-red-300">Akun penyedia ini ditangguhkan.</div>}
       {!s.is_active && <div className="card mb-3 text-sm text-white/70">Listing ini sedang nonaktif.</div>}
-      <div className="flex flex-wrap gap-2 text-[11px]"><span className="chip">{s.category}</span><span className="chip">{s.subcategory}</span></div>
+      <div className="flex flex-wrap gap-2 text-[11px]">{(s.categories?.length ? s.categories : [s.category]).map((c) => <span key={c} className="chip !text-gold">{c}</span>)}{(s.items?.length ? s.items : [s.subcategory]).map((i) => <span key={i} className="chip">{i}</span>)}</div>
       <h1 className="mt-2 text-2xl font-extrabold leading-tight">{s.title}</h1>
 
       <div className="card mt-4 space-y-2">

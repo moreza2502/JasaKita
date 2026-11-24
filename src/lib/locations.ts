@@ -1,36 +1,109 @@
-// Contoh data wilayah (ringkas). Tambahkan provinsi/kota/kecamatan lain sesuai kebutuhan.
-export const LOC: Record<string, Record<string, string[]>> = {
-  'DKI Jakarta': {
-    'Jakarta Selatan': ['Kebayoran Baru', 'Cilandak', 'Pasar Minggu', 'Tebet', 'Jagakarsa'],
-    'Jakarta Pusat': ['Menteng', 'Tanah Abang', 'Gambir', 'Senen'],
-    'Jakarta Barat': ['Kebon Jeruk', 'Grogol Petamburan', 'Cengkareng', 'Kembangan'],
-    'Jakarta Timur': ['Jatinegara', 'Duren Sawit', 'Cakung', 'Pulogadung'],
-    'Jakarta Utara': ['Kelapa Gading', 'Penjaringan', 'Tanjung Priok'],
-  },
-  'Jawa Barat': {
-    'Kota Depok': ['Sawangan', 'Beji', 'Cimanggis', 'Pancoran Mas', 'Cinere'],
-    'Kota Bekasi': ['Bekasi Selatan', 'Bekasi Utara', 'Bekasi Barat', 'Jatiasih'],
-    'Kota Bandung': ['Coblong', 'Cicendo', 'Lengkong', 'Buahbatu'],
-    'Kota Bogor': ['Bogor Tengah', 'Bogor Barat', 'Tanah Sareal'],
-  },
-  Banten: {
-    'Kota Tangerang Selatan': ['Serpong', 'Pamulang', 'Ciputat', 'Pondok Aren'],
-    'Kota Tangerang': ['Cipondoh', 'Karawaci', 'Batuceper'],
-  },
-  'Jawa Tengah': {
-    'Kota Semarang': ['Tembalang', 'Banyumanik', 'Semarang Tengah'],
-    'Kota Surakarta': ['Laweyan', 'Banjarsari', 'Jebres'],
-  },
-  'DI Yogyakarta': {
-    'Kabupaten Sleman': ['Depok', 'Mlati', 'Ngaglik', 'Gamping'],
-    'Kota Yogyakarta': ['Gondokusuman', 'Umbulharjo', 'Mergangsan'],
-  },
-  'Jawa Timur': {
-    'Kota Surabaya': ['Gubeng', 'Wonokromo', 'Rungkut', 'Sukolilo'],
-    'Kota Malang': ['Lowokwaru', 'Klojen', 'Blimbing'],
-  },
-  Bali: {
-    Denpasar: ['Denpasar Selatan', 'Denpasar Barat', 'Denpasar Timur'],
-    'Kabupaten Badung': ['Kuta', 'Kuta Utara', 'Mengwi'],
-  },
+// Daftar wilayah Indonesia: 38 provinsi, seluruh kabupaten/kota, dan kecamatan untuk kota/kabupaten besar.
+// Kota/kabupaten yang belum punya daftar kecamatan akan menampilkan kolom ketik manual.
+// Data disusun dari pengetahuan umum; untuk data resmi lengkap, impor dataset Kemendagri/BPS.
+const split = (s: string) => (s ? s.split(',').map((x) => x.trim()) : []);
+const PROV: Record<string, [string, string]> = {
+  'Aceh': ['Aceh Barat,Aceh Barat Daya,Aceh Besar,Aceh Jaya,Aceh Selatan,Aceh Singkil,Aceh Tamiang,Aceh Tengah,Aceh Tenggara,Aceh Timur,Aceh Utara,Bener Meriah,Bireuen,Gayo Lues,Nagan Raya,Pidie,Pidie Jaya,Simeulue', 'Banda Aceh,Langsa,Lhokseumawe,Sabang,Subulussalam'],
+  'Sumatera Utara': ['Asahan,Batu Bara,Dairi,Deli Serdang,Humbang Hasundutan,Karo,Labuhanbatu,Labuhanbatu Selatan,Labuhanbatu Utara,Langkat,Mandailing Natal,Nias,Nias Barat,Nias Selatan,Nias Utara,Padang Lawas,Padang Lawas Utara,Pakpak Bharat,Samosir,Serdang Bedagai,Simalungun,Tapanuli Selatan,Tapanuli Tengah,Tapanuli Utara,Toba', 'Binjai,Gunungsitoli,Medan,Padangsidimpuan,Pematangsiantar,Sibolga,Tanjungbalai,Tebing Tinggi'],
+  'Sumatera Barat': ['Agam,Dharmasraya,Kepulauan Mentawai,Lima Puluh Kota,Padang Pariaman,Pasaman,Pasaman Barat,Pesisir Selatan,Sijunjung,Solok,Solok Selatan,Tanah Datar', 'Bukittinggi,Padang,Padang Panjang,Pariaman,Payakumbuh,Sawahlunto,Solok'],
+  'Riau': ['Bengkalis,Indragiri Hilir,Indragiri Hulu,Kampar,Kepulauan Meranti,Kuantan Singingi,Pelalawan,Rokan Hilir,Rokan Hulu,Siak', 'Dumai,Pekanbaru'],
+  'Kepulauan Riau': ['Bintan,Karimun,Kepulauan Anambas,Lingga,Natuna', 'Batam,Tanjungpinang'],
+  'Jambi': ['Batanghari,Bungo,Kerinci,Merangin,Muaro Jambi,Sarolangun,Tanjung Jabung Barat,Tanjung Jabung Timur,Tebo', 'Jambi,Sungai Penuh'],
+  'Sumatera Selatan': ['Banyuasin,Empat Lawang,Lahat,Muara Enim,Musi Banyuasin,Musi Rawas,Musi Rawas Utara,Ogan Ilir,Ogan Komering Ilir,Ogan Komering Ulu,Ogan Komering Ulu Selatan,Ogan Komering Ulu Timur,Penukal Abab Lematang Ilir', 'Lubuklinggau,Pagar Alam,Palembang,Prabumulih'],
+  'Kepulauan Bangka Belitung': ['Bangka,Bangka Barat,Bangka Selatan,Bangka Tengah,Belitung,Belitung Timur', 'Pangkal Pinang'],
+  'Bengkulu': ['Bengkulu Selatan,Bengkulu Tengah,Bengkulu Utara,Kaur,Kepahiang,Lebong,Mukomuko,Rejang Lebong,Seluma', 'Bengkulu'],
+  'Lampung': ['Lampung Barat,Lampung Selatan,Lampung Tengah,Lampung Timur,Lampung Utara,Mesuji,Pesawaran,Pesisir Barat,Pringsewu,Tanggamus,Tulang Bawang,Tulang Bawang Barat,Way Kanan', 'Bandar Lampung,Metro'],
+  'Banten': ['Lebak,Pandeglang,Serang,Tangerang', 'Cilegon,Serang,Tangerang,Tangerang Selatan'],
+  'Jawa Barat': ['Bandung,Bandung Barat,Bekasi,Bogor,Ciamis,Cianjur,Cirebon,Garut,Indramayu,Karawang,Kuningan,Majalengka,Pangandaran,Purwakarta,Subang,Sukabumi,Sumedang,Tasikmalaya', 'Bandung,Banjar,Bekasi,Bogor,Cimahi,Cirebon,Depok,Sukabumi,Tasikmalaya'],
+  'Jawa Tengah': ['Banjarnegara,Banyumas,Batang,Blora,Boyolali,Brebes,Cilacap,Demak,Grobogan,Jepara,Karanganyar,Kebumen,Kendal,Klaten,Kudus,Magelang,Pati,Pekalongan,Pemalang,Purbalingga,Purworejo,Rembang,Semarang,Sragen,Sukoharjo,Tegal,Temanggung,Wonogiri,Wonosobo', 'Magelang,Pekalongan,Salatiga,Semarang,Surakarta,Tegal'],
+  'DI Yogyakarta': ['Bantul,Gunungkidul,Kulon Progo,Sleman', 'Yogyakarta'],
+  'Jawa Timur': ['Bangkalan,Banyuwangi,Blitar,Bojonegoro,Bondowoso,Gresik,Jember,Jombang,Kediri,Lamongan,Lumajang,Madiun,Magetan,Malang,Mojokerto,Nganjuk,Ngawi,Pacitan,Pamekasan,Pasuruan,Ponorogo,Probolinggo,Sampang,Sidoarjo,Situbondo,Sumenep,Trenggalek,Tuban,Tulungagung', 'Batu,Blitar,Kediri,Madiun,Malang,Mojokerto,Pasuruan,Probolinggo,Surabaya'],
+  'Bali': ['Badung,Bangli,Buleleng,Gianyar,Jembrana,Karangasem,Klungkung,Tabanan', 'Denpasar'],
+  'Nusa Tenggara Barat': ['Bima,Dompu,Lombok Barat,Lombok Tengah,Lombok Timur,Lombok Utara,Sumbawa,Sumbawa Barat', 'Bima,Mataram'],
+  'Nusa Tenggara Timur': ['Alor,Belu,Ende,Flores Timur,Kupang,Lembata,Malaka,Manggarai,Manggarai Barat,Manggarai Timur,Nagekeo,Ngada,Rote Ndao,Sabu Raijua,Sikka,Sumba Barat,Sumba Barat Daya,Sumba Tengah,Sumba Timur,Timor Tengah Selatan,Timor Tengah Utara', 'Kupang'],
+  'Kalimantan Barat': ['Bengkayang,Kapuas Hulu,Kayong Utara,Ketapang,Kubu Raya,Landak,Melawi,Mempawah,Sambas,Sanggau,Sekadau,Sintang', 'Pontianak,Singkawang'],
+  'Kalimantan Tengah': ['Barito Selatan,Barito Timur,Barito Utara,Gunung Mas,Kapuas,Katingan,Kotawaringin Barat,Kotawaringin Timur,Lamandau,Murung Raya,Pulang Pisau,Sukamara,Seruyan', 'Palangka Raya'],
+  'Kalimantan Selatan': ['Balangan,Banjar,Barito Kuala,Hulu Sungai Selatan,Hulu Sungai Tengah,Hulu Sungai Utara,Kotabaru,Tabalong,Tanah Bumbu,Tanah Laut,Tapin', 'Banjarbaru,Banjarmasin'],
+  'Kalimantan Timur': ['Berau,Kutai Barat,Kutai Kartanegara,Kutai Timur,Mahakam Ulu,Paser,Penajam Paser Utara', 'Balikpapan,Bontang,Samarinda'],
+  'Kalimantan Utara': ['Bulungan,Malinau,Nunukan,Tana Tidung', 'Tarakan'],
+  'Sulawesi Utara': ['Bolaang Mongondow,Bolaang Mongondow Selatan,Bolaang Mongondow Timur,Bolaang Mongondow Utara,Kepulauan Sangihe,Kepulauan Siau Tagulandang Biaro,Kepulauan Talaud,Minahasa,Minahasa Selatan,Minahasa Tenggara,Minahasa Utara', 'Bitung,Kotamobagu,Manado,Tomohon'],
+  'Gorontalo': ['Boalemo,Bone Bolango,Gorontalo,Gorontalo Utara,Pohuwato', 'Gorontalo'],
+  'Sulawesi Tengah': ['Banggai,Banggai Kepulauan,Banggai Laut,Buol,Donggala,Morowali,Morowali Utara,Parigi Moutong,Poso,Sigi,Tojo Una-Una,Tolitoli', 'Palu'],
+  'Sulawesi Barat': ['Majene,Mamasa,Mamuju,Mamuju Tengah,Pasangkayu,Polewali Mandar', ''],
+  'Sulawesi Selatan': ['Bantaeng,Barru,Bone,Bulukumba,Enrekang,Gowa,Jeneponto,Kepulauan Selayar,Luwu,Luwu Timur,Luwu Utara,Maros,Pangkajene dan Kepulauan,Pinrang,Sidenreng Rappang,Sinjai,Soppeng,Takalar,Tana Toraja,Toraja Utara,Wajo', 'Makassar,Palopo,Parepare'],
+  'Sulawesi Tenggara': ['Bombana,Buton,Buton Selatan,Buton Tengah,Buton Utara,Kolaka,Kolaka Timur,Kolaka Utara,Konawe,Konawe Kepulauan,Konawe Selatan,Konawe Utara,Muna,Muna Barat,Wakatobi', 'Baubau,Kendari'],
+  'Maluku': ['Buru,Buru Selatan,Kepulauan Aru,Kepulauan Tanimbar,Maluku Barat Daya,Maluku Tengah,Maluku Tenggara,Seram Bagian Barat,Seram Bagian Timur', 'Ambon,Tual'],
+  'Maluku Utara': ['Halmahera Barat,Halmahera Selatan,Halmahera Tengah,Halmahera Timur,Halmahera Utara,Kepulauan Sula,Pulau Morotai,Pulau Taliabu', 'Ternate,Tidore Kepulauan'],
+  'Papua': ['Biak Numfor,Jayapura,Keerom,Kepulauan Yapen,Mamberamo Raya,Sarmi,Supiori,Waropen', 'Jayapura'],
+  'Papua Barat': ['Fakfak,Kaimana,Manokwari,Manokwari Selatan,Pegunungan Arfak,Teluk Bintuni,Teluk Wondama', ''],
+  'Papua Barat Daya': ['Maybrat,Raja Ampat,Sorong,Sorong Selatan,Tambrauw', 'Sorong'],
+  'Papua Selatan': ['Asmat,Boven Digoel,Mappi,Merauke', ''],
+  'Papua Tengah': ['Deiyai,Dogiyai,Intan Jaya,Mimika,Nabire,Paniai,Puncak,Puncak Jaya', ''],
+  'Papua Pegunungan': ['Jayawijaya,Lanny Jaya,Mamberamo Tengah,Nduga,Pegunungan Bintang,Tolikara,Yahukimo,Yalimo', ''],
 };
+const DKI_KOTA = 'Jakarta Pusat,Jakarta Utara,Jakarta Barat,Jakarta Selatan,Jakarta Timur';
+const KEC: Record<string, string> = {
+  'Jakarta Pusat': 'Cempaka Putih,Gambir,Johar Baru,Kemayoran,Menteng,Sawah Besar,Senen,Tanah Abang',
+  'Jakarta Utara': 'Cilincing,Kelapa Gading,Koja,Pademangan,Penjaringan,Tanjung Priok',
+  'Jakarta Barat': 'Cengkareng,Grogol Petamburan,Kalideres,Kebon Jeruk,Kembangan,Palmerah,Taman Sari,Tambora',
+  'Jakarta Selatan': 'Cilandak,Jagakarsa,Kebayoran Baru,Kebayoran Lama,Mampang Prapatan,Pancoran,Pasar Minggu,Pesanggrahan,Setiabudi,Tebet',
+  'Jakarta Timur': 'Cakung,Cipayung,Ciracas,Duren Sawit,Jatinegara,Kramat Jati,Makasar,Matraman,Pasar Rebo,Pulo Gadung',
+  'Kabupaten Kepulauan Seribu': 'Kepulauan Seribu Selatan,Kepulauan Seribu Utara',
+  'Kota Depok': 'Beji,Bojongsari,Cilodong,Cimanggis,Cinere,Cipayung,Limo,Pancoran Mas,Sawangan,Sukmajaya,Tapos',
+  'Kota Bekasi': 'Bantargebang,Bekasi Barat,Bekasi Selatan,Bekasi Timur,Bekasi Utara,Jatiasih,Jatisampurna,Medan Satria,Mustika Jaya,Pondok Gede,Pondok Melati,Rawalumbu',
+  'Kota Bogor': 'Bogor Barat,Bogor Selatan,Bogor Tengah,Bogor Timur,Bogor Utara,Tanah Sareal',
+  'Kota Bandung': 'Andir,Antapani,Arcamanik,Astanaanyar,Babakan Ciparay,Bandung Kidul,Bandung Kulon,Bandung Wetan,Batununggal,Bojongloa Kaler,Bojongloa Kidul,Buahbatu,Cibeunying Kaler,Cibeunying Kidul,Cibiru,Cicendo,Cidadap,Cinambo,Coblong,Gedebage,Kiaracondong,Lengkong,Mandalajati,Panyileukan,Rancasari,Regol,Sukajadi,Sukasari,Sumur Bandung,Ujungberung',
+  'Kota Cimahi': 'Cimahi Selatan,Cimahi Tengah,Cimahi Utara',
+  'Kota Cirebon': 'Harjamukti,Kejaksan,Kesambi,Lemahwungkuk,Pekalipan',
+  'Kota Sukabumi': 'Baros,Cibeureum,Cikole,Citamiga,Gunungpuyuh,Lembursitu,Warudoyong',
+  'Kota Tasikmalaya': 'Bungursari,Cibeureum,Cihideung,Cipedes,Indihiang,Kawalu,Mangkubumi,Purbaratu,Tamansari,Tawang',
+  'Kabupaten Bogor': 'Babakan Madang,Bojonggede,Caringin,Cariu,Ciampea,Ciawi,Cibinong,Cibungbulang,Cigombong,Cigudeg,Cijeruk,Cileungsi,Ciomas,Cisarua,Ciseeng,Citeureup,Dramaga,Gunung Putri,Gunung Sindur,Jasinga,Jonggol,Kemang,Klapanunggal,Leuwiliang,Leuwisadeng,Megamendung,Nanggung,Pamijahan,Parung,Parung Panjang,Rancabungur,Rumpin,Sukajaya,Sukamakmur,Sukaraja,Tajurhalang,Tamansari,Tanjungsari,Tenjo,Tenjolaya',
+  'Kabupaten Bekasi': 'Babelan,Bojongmangu,Cabangbungin,Cibarusah,Cibitung,Cikarang Barat,Cikarang Pusat,Cikarang Selatan,Cikarang Timur,Cikarang Utara,Karangbahagia,Kedungwaringin,Muara Gembong,Pebayuran,Serang Baru,Setu,Sukakarya,Sukatani,Sukawangi,Tambelang,Tambun Selatan,Tambun Utara,Tarumajaya',
+  'Kabupaten Tangerang': 'Balaraja,Cikupa,Cisauk,Cisoka,Curug,Gunung Kaler,Jambe,Jayanti,Kelapa Dua,Kemiri,Kosambi,Kresek,Kronjo,Legok,Mauk,Pagedangan,Pakuhaji,Panongan,Pasar Kemis,Rajeg,Sepatan,Sepatan Timur,Sindang Jaya,Solear,Sukadiri,Sukamulya,Teluknaga,Tigaraksa',
+  'Kota Tangerang Selatan': 'Ciputat,Ciputat Timur,Pamulang,Pondok Aren,Serpong,Serpong Utara,Setu',
+  'Kota Tangerang': 'Batuceper,Benda,Cibodas,Ciledug,Cipondoh,Jatiuwung,Karang Tengah,Karawaci,Larangan,Neglasari,Periuk,Pinang,Tangerang',
+  'Kota Serang': 'Cipocok Jaya,Curug,Kasemen,Serang,Taktakan,Walantaka',
+  'Kota Cilegon': 'Cibeber,Cilegon,Citangkil,Ciwandan,Grogol,Jombang,Pulomerak,Purwakarta',
+  'Kota Semarang': 'Banyumanik,Candisari,Gajah Mungkur,Gayamsari,Genuk,Gunungpati,Mijen,Ngaliyan,Pedurungan,Semarang Barat,Semarang Selatan,Semarang Tengah,Semarang Timur,Semarang Utara,Tembalang,Tugu',
+  'Kota Surakarta': 'Banjarsari,Jebres,Laweyan,Pasar Kliwon,Serengan',
+  'Kota Yogyakarta': 'Danurejan,Gedongtengen,Gondokusuman,Gondomanan,Jetis,Kotagede,Kraton,Mantrijeron,Mergangsan,Ngampilan,Pakualaman,Tegalrejo,Umbulharjo,Wirobrajan',
+  'Kabupaten Sleman': 'Berbah,Cangkringan,Depok,Gamping,Godean,Kalasan,Minggir,Mlati,Moyudan,Ngaglik,Ngemplak,Pakem,Prambanan,Seyegan,Sleman,Tempel,Turi',
+  'Kabupaten Bantul': 'Bambanglipuro,Banguntapan,Bantul,Dlingo,Imogiri,Jetis,Kasihan,Kretek,Pajangan,Pandak,Piyungan,Pleret,Pundong,Sanden,Sedayu,Sewon,Srandakan',
+  'Kota Surabaya': 'Asemrowo,Benowo,Bubutan,Bulak,Dukuh Pakis,Gayungan,Genteng,Gubeng,Gunung Anyar,Jambangan,Karang Pilang,Kenjeran,Krembangan,Lakarsantri,Mulyorejo,Pabean Cantian,Pakal,Rungkut,Sambikerep,Sawahan,Semampir,Simokerto,Sukolilo,Sukomanunggal,Tambaksari,Tandes,Tegalsari,Tenggilis Mejoyo,Wiyung,Wonocolo,Wonokromo',
+  'Kota Malang': 'Blimbing,Kedungkandang,Klojen,Lowokwaru,Sukun',
+  'Kota Kediri': 'Kota,Mojoroto,Pesantren',
+  'Kabupaten Sidoarjo': 'Balongbendo,Buduran,Candi,Gedangan,Jabon,Krembung,Krian,Porong,Prambon,Sedati,Sidoarjo,Sukodono,Taman,Tanggulangin,Tarik,Tulangan,Waru,Wonoayu',
+  'Kota Denpasar': 'Denpasar Barat,Denpasar Selatan,Denpasar Timur,Denpasar Utara',
+  'Kabupaten Badung': 'Abiansemal,Kuta,Kuta Selatan,Kuta Utara,Mengwi,Petang',
+  'Kabupaten Gianyar': 'Blahbatuh,Gianyar,Payangan,Sukawati,Tampaksiring,Tegallalang,Ubud',
+  'Kota Medan': 'Medan Amplas,Medan Area,Medan Barat,Medan Baru,Medan Belawan,Medan Deli,Medan Denai,Medan Helvetia,Medan Johor,Medan Kota,Medan Labuhan,Medan Maimun,Medan Marelan,Medan Perjuangan,Medan Petisah,Medan Polonia,Medan Selayang,Medan Sunggal,Medan Tembung,Medan Timur,Medan Tuntungan',
+  'Kota Padang': 'Bungus Teluk Kabung,Koto Tangah,Kuranji,Lubuk Begalung,Lubuk Kilangan,Nanggalo,Padang Barat,Padang Selatan,Padang Timur,Padang Utara,Pauh',
+  'Kota Pekanbaru': 'Binawidya,Bukit Raya,Kulim,Lima Puluh,Marpoyan Damai,Payung Sekaki,Pekanbaru Kota,Rumbai,Rumbai Barat,Rumbai Timur,Sail,Senapelan,Sukajadi,Tampan,Tenayan Raya',
+  'Kota Batam': 'Batam Kota,Batu Aji,Batu Ampar,Belakang Padang,Bengkong,Bulang,Galang,Lubuk Baja,Nongsa,Sagulung,Sei Beduk,Sekupang',
+  'Kota Jambi': 'Alam Barajo,Danau Sipin,Danau Teluk,Jambi Selatan,Jambi Timur,Jelutung,Kota Baru,Paal Merah,Pasar Jambi,Pelayangan,Telanaipura',
+  'Kota Palembang': 'Alang-Alang Lebar,Bukit Kecil,Gandus,Ilir Barat I,Ilir Barat II,Ilir Timur I,Ilir Timur II,Jakabaring,Kalidoni,Kemuning,Kertapati,Plaju,Sako,Seberang Ulu I,Seberang Ulu II,Sematang Borang,Sukarami',
+  'Kota Bandar Lampung': 'Bumi Waras,Enggal,Kedamaian,Kedaton,Kemiling,Labuhan Ratu,Langkapura,Panjang,Rajabasa,Sukabumi,Sukarame,Tanjung Karang Barat,Tanjung Karang Pusat,Tanjung Karang Timur,Tanjung Senang,Telukbetung Barat,Telukbetung Selatan,Telukbetung Timur,Telukbetung Utara,Way Halim',
+  'Kota Mataram': 'Ampenan,Cakranegara,Mataram,Sandubaya,Sekarbela,Selaparang',
+  'Kota Kupang': 'Alak,Kelapa Lima,Kota Lama,Kota Raja,Maulafa,Oebobo',
+  'Kota Pontianak': 'Pontianak Barat,Pontianak Kota,Pontianak Selatan,Pontianak Tenggara,Pontianak Timur,Pontianak Utara',
+  'Kota Banjarmasin': 'Banjarmasin Barat,Banjarmasin Selatan,Banjarmasin Tengah,Banjarmasin Timur,Banjarmasin Utara',
+  'Kota Balikpapan': 'Balikpapan Barat,Balikpapan Kota,Balikpapan Selatan,Balikpapan Tengah,Balikpapan Timur,Balikpapan Utara',
+  'Kota Samarinda': 'Loa Janan Ilir,Palaran,Samarinda Ilir,Samarinda Kota,Samarinda Seberang,Samarinda Ulu,Samarinda Utara,Sambutan,Sungai Kunjang,Sungai Pinang',
+  'Kota Manado': 'Bunaken,Bunaken Kepulauan,Malalayang,Mapanget,Paal Dua,Sario,Singkil,Tikala,Tuminting,Wanea,Wenang',
+  'Kota Palu': 'Mantikulore,Palu Barat,Palu Selatan,Palu Timur,Palu Utara,Tatanga,Tawaeli,Ulujadi',
+  'Kota Makassar': 'Biringkanaya,Bontoala,Makassar,Mamajang,Manggala,Mariso,Panakkukang,Rappocini,Sangkarrang,Tallo,Tamalanrea,Tamalate,Ujung Pandang,Ujung Tanah,Wajo',
+  'Kota Kendari': 'Abeli,Baruga,Kadia,Kambu,Kendari,Kendari Barat,Mandonga,Nambo,Poasia,Puuwatu,Wua-Wua',
+  'Kota Ambon': 'Baguala,Leitimur Selatan,Nusaniwe,Sirimau,Teluk Ambon',
+  'Kota Jayapura': 'Abepura,Heram,Jayapura Selatan,Jayapura Utara,Muara Tami',
+};
+export const LOC: Record<string, Record<string, string[]>> = {};
+const add = (p: string, city: string) => { (LOC[p] = LOC[p] || {})[city] = split(KEC[city] || ''); };
+// DKI Jakarta memakai nama kota administrasi tanpa awalan
+split(DKI_KOTA).forEach((c) => add('DKI Jakarta', c));
+add('DKI Jakarta', 'Kabupaten Kepulauan Seribu');
+Object.keys(PROV).forEach((p) => {
+  const [kab, kota] = PROV[p];
+  split(kota).forEach((n) => add(p, 'Kota ' + n));
+  split(kab).forEach((n) => add(p, 'Kabupaten ' + n));
+});
+export const PROVINCES = Object.keys(LOC).sort((a, b) => a.localeCompare(b));

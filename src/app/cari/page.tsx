@@ -2,23 +2,24 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { list, profileMap } from '@/lib/db';
-import { CATEGORIES } from '@/lib/constants';
 import { PM_LABEL } from '@/lib/format';
 import { avgRating } from '@/lib/trust';
 import { useQ } from '@/lib/hooks';
 import type { Profile, Service } from '@/lib/types';
 import ServiceCard from '@/components/ServiceCard';
 import LocationPicker, { Loc } from '@/components/LocationPicker';
+import { CategoryBrowse, Flt, useTree } from '@/components/CategoryPicker';
+
+const eq = (a: string, b: string) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
 
 export default function Cari() {
-  const [all, setAll] = useState<Service[]>([]);
-  const [pm, setPm] = useState<Record<string, Profile>>({});
-  const [q, setQ] = useState(''); const [cat, setCat] = useState(''); const [mode, setMode] = useState(''); const [tier, setTier] = useState('');
-  const [loc, setLoc] = useState<Loc>({ province: '', city: '', district: '' });
-  const [showF, setShowF] = useState(false);
+  const tree = useTree();
+  const [all, setAll] = useState<Service[]>([]); const [pm, setPm] = useState<Record<string, Profile>>({});
+  const [q, setQ] = useState(''); const [flt, setFlt] = useState<Flt>({}); const [mode, setMode] = useState(''); const [tier, setTier] = useState('');
+  const [loc, setLoc] = useState<Loc>({ province: '', city: '', district: '' }); const [showF, setShowF] = useState(false);
   const [ai, setAi] = useState(''); const [aiBusy, setAiBusy] = useState(false); const [aiRes, setAiRes] = useState<any>(null); const [aiErr, setAiErr] = useState('');
-  const catQ = useQ('cat'); const aiQ = useQ('ai');
-  useEffect(() => { if (catQ) setCat(catQ); }, [catQ]);
+  const gQ = useQ('g'); const cQ = useQ('c'); const aiQ = useQ('ai');
+  useEffect(() => { if (gQ) setFlt({ g: gQ, c: cQ || undefined }); }, [gQ, cQ]);
   useEffect(() => {
     (async () => {
       const [s, m] = await Promise.all([list<Service>('services', { is_active: true }), profileMap()]);
@@ -27,7 +28,10 @@ export default function Cari() {
   }, []);
 
   const rows = useMemo(() => all.filter((s) => {
-    if (cat && s.category !== cat) return false;
+    const cats = s.categories?.length ? s.categories : [s.category]; const items = s.items || [];
+    if (flt.i) { if (!items.includes(flt.i)) return false; }
+    else if (flt.c) { if (!cats.includes(flt.c)) return false; }
+    else if (flt.g) { const names = tree.find((g) => g.id === flt.g)?.cats.map((c) => c.name) || []; if (!cats.some((c) => names.includes(c))) return false; }
     if (mode === 'ONSITE' && s.mode === 'REMOTE') return false;
     if (mode === 'REMOTE' && s.mode === 'ONSITE') return false;
     if (tier === 'HOURLY' && !s.price_hourly) return false;
@@ -35,19 +39,18 @@ export default function Cari() {
     if (tier === 'PROJECT' && !s.price_project) return false;
     // Filter lokasi ketat untuk layanan On-Site; Remote berlaku se-Indonesia
     if (s.mode !== 'REMOTE' && (loc.province || loc.city || loc.district)) {
-      if (loc.province && s.province !== loc.province) return false;
-      if (loc.city && s.city !== loc.city) return false;
-      if (loc.district && s.district !== loc.district) return false;
+      if (loc.province && !eq(s.province, loc.province)) return false;
+      if (loc.city && !eq(s.city, loc.city)) return false;
+      if (loc.district && !eq(s.district, loc.district)) return false;
     }
-    if (s.mode === 'REMOTE' && mode === 'ONSITE') return false;
-    if (q) { const h = `${s.title} ${s.description} ${s.category} ${s.subcategory} ${(s.tags || []).join(' ')}`.toLowerCase(); if (!q.toLowerCase().split(/\s+/).every((w) => h.includes(w))) return false; }
+    if (q) { const h = `${s.title} ${s.description} ${cats.join(' ')} ${items.join(' ')} ${(s.tags || []).join(' ')}`.toLowerCase(); if (!q.toLowerCase().split(/\s+/).every((w) => h.includes(w))) return false; }
     return true;
-  }), [all, q, cat, mode, tier, loc]);
+  }), [all, q, flt, mode, tier, loc, tree]);
 
   async function askAi() {
     setAiErr(''); setAiRes(null); setAiBusy(true);
     try {
-      const compact = all.map((s) => ({ id: s.id, title: s.title, category: s.category, tags: s.tags, mode: s.mode, city: s.city, provider: pm[s.provider_id]?.full_name, rating: Number(avgRating(pm[s.provider_id] || ({ rating_count: 0, rating_sum: 0 } as any)).toFixed(1)) }));
+      const compact = all.map((s) => ({ id: s.id, title: s.title, categories: s.categories, items: s.items, tags: s.tags, mode: s.mode, city: s.city, provider: pm[s.provider_id]?.full_name, rating: Number(avgRating(pm[s.provider_id] || ({ rating_count: 0, rating_sum: 0 } as any)).toFixed(1)) }));
       const r = await fetch('/api/ai/match', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: ai, services: compact }) });
       const j = await r.json(); if (!r.ok) throw new Error(j.error || 'Gagal');
       setAiRes(j);
@@ -75,14 +78,12 @@ export default function Cari() {
         )}
       </div>
 
-      <div className="mt-4 flex gap-2">
-        <input className="input" placeholder="Cari: atap bocor, cuci AC, website…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <h2 className="mb-3 mt-6 font-bold">Pilih kategori</h2>
+      <CategoryBrowse value={flt} onChange={setFlt} />
+
+      <div className="mt-5 flex gap-2">
+        <input className="input" placeholder="Atau ketik: atap bocor, cuci AC, website…" value={q} onChange={(e) => setQ(e.target.value)} />
         <button className="btn-ghost" onClick={() => setShowF(!showF)}>Filter</button>
-      </div>
-      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-        {['', ...CATEGORIES.map((c) => c.id)].map((c) => (
-          <button key={c} onClick={() => setCat(c)} className={`chip whitespace-nowrap ${cat === c ? '!border-gold !text-gold' : ''}`}>{c || 'Semua'}</button>
-        ))}
       </div>
       {showF && (
         <div className="card mt-3">

@@ -1,13 +1,21 @@
 import type { Profile } from './types';
-export function completeness(p: Profile) {
+const isEmail = (s?: string | null) => !!s && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s);
+
+// Bobot: foto 20, nama+bio 15, domisili 20, WhatsApp 20, email 15, sosial 10.
+// Wajib (req): foto, domisili, WhatsApp, email. Boleh menerbitkan jika semua wajib terisi DAN skor >= 80.
+// email === undefined berarti "anggap ada" (dipakai untuk menghitung Trust Score akun orang lain).
+export function completeness(p: Profile, email?: string | null) {
   const items = [
-    { label: 'Foto profil asli', ok: !!p.avatar_url },
-    { label: 'Nama lengkap & bio singkat', ok: !!p.full_name?.trim() && (p.bio || '').trim().length >= 10 },
-    { label: 'Domisili (Provinsi, Kota, Kecamatan)', ok: !!(p.province && p.city && p.district) },
-    { label: 'WhatsApp aktif (terkonfirmasi)', ok: !!p.wa_verified },
-    { label: 'Link sosial media / portofolio', ok: /^https?:\/\/.+\..+/.test(p.social_url || '') },
+    { key: 'photo', label: 'Foto profil asli', w: 20, req: true, ok: !!p.avatar_url },
+    { key: 'name', label: 'Nama lengkap & bio singkat', w: 15, req: false, ok: !!p.full_name?.trim() && (p.bio || '').trim().length >= 10 },
+    { key: 'loc', label: 'Alamat domisili (Provinsi, Kota, Kecamatan)', w: 20, req: true, ok: !!(p.province && p.city && p.district) },
+    { key: 'wa', label: 'WhatsApp aktif (terkonfirmasi)', w: 20, req: true, ok: !!p.wa_verified },
+    { key: 'email', label: 'Alamat email', w: 15, req: true, ok: email === undefined ? true : isEmail(email) },
+    { key: 'social', label: 'Link sosial media / portofolio', w: 10, req: false, ok: /^https?:\/\/.+\..+/.test(p.social_url || '') },
   ];
-  return { items, pct: items.filter((i) => i.ok).length * 20 };
+  const pct = items.filter((i) => i.ok).reduce((a, i) => a + i.w, 0);
+  const missing = items.filter((i) => i.req && !i.ok);
+  return { items, pct, missing, canPublish: pct >= 80 && missing.length === 0 };
 }
 export const ageDays = (p: Profile) => Math.floor((Date.now() - new Date(p.created_at).getTime()) / 864e5);
 export const isNew = (p: Profile) => ageDays(p) < 30;
